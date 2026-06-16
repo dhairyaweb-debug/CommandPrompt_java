@@ -18,7 +18,7 @@ public class Main {
                 String command = input.substring(5);
 
                 if (command.equals("echo") || command.equals("exit") || command.equals("type")) {
-                    System.out.println(command + ": is a shell builtin");
+                    System.out.println(command + " is a shell builtin");
                 } else {
                     System.err.println(command + ": not found");
                 }
