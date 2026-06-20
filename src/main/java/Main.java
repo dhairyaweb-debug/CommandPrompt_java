@@ -28,10 +28,15 @@ public class Main {
                 System.out.println(System.getProperty("user.dir"));
             } else if (command.equals("cd")) {
                 String path = input.substring(3).trim();
-                File directory = new File(path);
+                File currentDir = new File(System.getProperty("user.dir"));
+                File targetDir = new File(path);
 
-                if (directory.isAbsolute() && directory.exists() && directory.isDirectory()) {
-                    System.setProperty("user.dir", directory.getAbsolutePath());
+                if (!targetDir.isAbsolute()) {
+                    targetDir = new File(currentDir, path);
+                }
+
+                if (targetDir.exists() && targetDir.isDirectory()) {
+                    System.setProperty("user.dir", targetDir.getCanonicalPath());
                 } else {
                     System.out.println("cd: " + path + ": No such file or directory");
                 }
