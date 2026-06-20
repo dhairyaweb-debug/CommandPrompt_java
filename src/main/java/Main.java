@@ -523,6 +523,8 @@ public class Main {
                 .getAbsoluteFile();
 
         while (true) {
+            checkAndPrintJobs(System.out);
+
             System.out.print("$ ");
             System.out.flush();
 
