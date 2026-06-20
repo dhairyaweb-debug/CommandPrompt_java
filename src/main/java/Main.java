@@ -148,7 +148,7 @@ public class Main {
 
                 if (found) {
                     if (outputFile != null) {
-                        System.close();
+                        System.out.close();
                         System.setOut(originalOut);
                     }
                     ProcessBuilder pb = new ProcessBuilder(inputParts)
@@ -169,7 +169,7 @@ public class Main {
                     process.waitFor();
                 } else {
                     if (outputFile != null) {
-                        System.close();
+                        System.out.close();
                         System.setOut(originalOut);
                     }
                     System.out.println(command + ": command not found");
@@ -177,7 +177,7 @@ public class Main {
             }
 
             if (outputFile != null && System.out != originalOut) {
-                System.close();
+                System.out.close();
                 System.setOut(originalOut);
             }
         }
