@@ -1,8 +1,8 @@
+import java.io.File;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        // TODO: Uncomment the code below to pass the first stage
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
@@ -20,11 +20,28 @@ public class Main {
                 if (command.equals("echo") || command.equals("exit") || command.equals("type")) {
                     System.out.println(command + " is a shell builtin");
                 } else {
-                    System.err.println(command + ": not found");
+                    String path = findInPath(command);
+                    if (path != null) {
+                        System.out.println(command + " is " + path);
+                    } else {
+                        System.out.println(command + ": not found");
+                    }
                 }
             } else {
                 System.out.println(input + ": command not found");
             }
         }
+    }
+
+    private static String findInPath(String command) {
+        String pathEnv = System.getenv("PATH");
+        if (pathEnv == null) return null;
+        for (String dir : pathEnv.split(File.pathSeparator)) {
+            File file = new File(dir, command);
+            if (file.isFile() && file.canExecute()) {
+                return file.getAbsolutePath();
+            }
+        }
+        return null;
     }
 }
