@@ -15,6 +15,7 @@ import java.util.Set;
 public class Main {
 
     private static class JobInfo {
+
         int jobNumber;
         Process process;
         String command;
@@ -27,6 +28,7 @@ public class Main {
     }
 
     private static class RedirectInfo {
+
         List<String> parts;
         String stdoutFile;
         boolean stdoutAppend;
@@ -59,7 +61,7 @@ public class Main {
 
             if (escaping) {
                 if (inDoubleQuotes) {
-                    if (ch == '"' || ch == '\\' || ch == '$' || ch == '`') {
+                    if (ch == '"' || ch == '\\') {
                         current.append(ch);
                     } else {
                         current.append('\\');
@@ -85,13 +87,6 @@ public class Main {
                     current.setLength(0);
                     tokenStarted = false;
                 }
-            } else if (ch == '&' && !inSingleQuotes && !inDoubleQuotes) {
-                if (tokenStarted) {
-                    args.add(current.toString());
-                    current.setLength(0);
-                    tokenStarted = false;
-                }
-                args.add("&");
             } else if (ch == '|' && !inSingleQuotes && !inDoubleQuotes) {
                 if (tokenStarted) {
                     args.add(current.toString());
@@ -225,6 +220,7 @@ public class Main {
     private static void touchFile(String fileName,
             boolean append) throws Exception {
         try (FileOutputStream ignored = new FileOutputStream(fileName, append)) {
+            // create/truncate file only
         }
     }
 
@@ -455,46 +451,51 @@ public class Main {
                 errWriter.println("cd: " + arg + ": No such file or directory");
             }
         } else if (command.equals("jobs")) {
-            printJobsBuiltin(writer);
+            checkAndPrintJobs(writer, true);
         }
     }
 
-    private static void reapBackgroundJobsBeforePrompt() {
-        List<JobInfo> toRemove = new ArrayList<>();
-        for (JobInfo job : backgroundJobs) {
-            if (!job.process.isAlive()) {
-                System.out.printf("[%d]   Done                    %s%n", job.jobNumber, job.command);
-                toRemove.add(job);
-            }
+    private static String displayCommandWithoutTrailingAmpersand(String command) {
+        if (command.endsWith(" &")) {
+            return command.substring(0, command.length() - 2);
         }
-        backgroundJobs.removeAll(toRemove);
+        return command;
     }
 
-    private static void printJobsBuiltin(PrintStream out) {
+    private static void checkAndPrintJobs(PrintStream out, boolean printAll) {
+        int size = backgroundJobs.size();
         List<JobInfo> toRemove = new ArrayList<>();
-        List<JobInfo> livingJobs = new ArrayList<>();
 
-        for (JobInfo job : backgroundJobs) {
-            if (!job.process.isAlive()) {
-                out.printf("[%d]   Done                    %s%n", job.jobNumber, job.command);
-                toRemove.add(job);
-            } else {
-                livingJobs.add(job);
-            }
-        }
-        backgroundJobs.removeAll(toRemove);
+        for (int i = 0; i < size; i++) {
+            JobInfo job = backgroundJobs.get(i);
+            boolean isAlive = job.process.isAlive();
 
-        int count = livingJobs.size();
-        for (int i = 0; i < count; i++) {
-            JobInfo job = livingJobs.get(i);
             char marker = ' ';
-            if (i == count - 1) {
+            if (i == size - 1) {
                 marker = '+';
-            } else if (i == count - 2) {
+            } else if (i == size - 2) {
                 marker = '-';
             }
-            out.printf("[%d]%c  Running                 %s &%n", job.jobNumber, marker, job.command);
+
+            if (!isAlive) {
+                out.printf(
+                        "[%d]%c  %-24s%s%n",
+                        job.jobNumber,
+                        marker,
+                        "Done",
+                        displayCommandWithoutTrailingAmpersand(job.command));
+                toRemove.add(job);
+            } else if (printAll) {
+                out.printf(
+                        "[%d]%c  %-24s%s%n",
+                        job.jobNumber,
+                        marker,
+                        "Running",
+                        job.command);
+            }
         }
+
+        backgroundJobs.removeAll(toRemove);
     }
 
     private static int getNextJobNumber() {
@@ -529,14 +530,15 @@ public class Main {
                 .getAbsoluteFile();
 
         while (true) {
-            reapBackgroundJobsBeforePrompt();
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException ignored) {
+            }
+            checkAndPrintJobs(System.out, false);
 
             System.out.print("$ ");
             System.out.flush();
 
-            if (!sc.hasNextLine()) {
-                break;
-            }
             String cmd = sc.nextLine();
 
             List<String> parts = parseCommand(cmd);
@@ -562,6 +564,7 @@ public class Main {
             }
 
             RedirectInfo redirectInfo = extractRedirections(parts);
+
             parts = redirectInfo.parts;
 
             if (parts.isEmpty()) {
@@ -692,38 +695,53 @@ public class Main {
                     }
                 }
             } else if (command.equals("jobs")) {
-                printJobsBuiltin(System.out);
+                checkAndPrintJobs(System.out, true);
             } else {
                 File executable = findExecutable(command);
 
                 if (executable != null) {
                     ProcessBuilder pb = new ProcessBuilder(parts);
+
                     pb.directory(currentDir);
 
                     if (redirectInfo.stdoutFile != null) {
                         if (redirectInfo.stdoutAppend) {
-                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(redirectInfo.stdoutFile)));
+                            pb.redirectOutput(
+                                    ProcessBuilder.Redirect.appendTo(
+                                            new File(
+                                                    redirectInfo.stdoutFile)));
                         } else {
-                            pb.redirectOutput(ProcessBuilder.Redirect.to(new File(redirectInfo.stdoutFile)));
+                            pb.redirectOutput(
+                                    ProcessBuilder.Redirect.to(
+                                            new File(
+                                                    redirectInfo.stdoutFile)));
                         }
                     } else {
-                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                        pb.redirectOutput(
+                                ProcessBuilder.Redirect.INHERIT);
                     }
 
                     if (redirectInfo.stderrFile != null) {
                         if (redirectInfo.stderrAppend) {
-                            pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(redirectInfo.stderrFile)));
+                            pb.redirectError(
+                                    ProcessBuilder.Redirect.appendTo(
+                                            new File(
+                                                    redirectInfo.stderrFile)));
                         } else {
-                            pb.redirectError(ProcessBuilder.Redirect.to(new File(redirectInfo.stderrFile)));
+                            pb.redirectError(
+                                    ProcessBuilder.Redirect.to(
+                                            new File(
+                                                    redirectInfo.stderrFile)));
                         }
                     } else {
-                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                        pb.redirectError(
+                                ProcessBuilder.Redirect.INHERIT);
                     }
 
                     Process process = pb.start();
 
                     if (background) {
-                        String commandStr = String.join(" ", parts);
+                        String commandStr = String.join(" ", parts) + " &";
                         int jobNo = getNextJobNumber();
 
                         JobInfo job = new JobInfo(
