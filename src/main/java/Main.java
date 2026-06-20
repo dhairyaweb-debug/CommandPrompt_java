@@ -11,7 +11,7 @@ public class Main {
         PrintStream originalOut = System.out;
 
         while (true) {
-            System.print("$ ");
+            System.out.print("$ ");
 
             if (!scanner.hasNextLine()) {
                 break;
@@ -148,7 +148,7 @@ public class Main {
 
                 if (found) {
                     if (outputFile != null) {
-                        System.out.close();
+                        System.close();
                         System.setOut(originalOut);
                     }
                     ProcessBuilder pb = new ProcessBuilder(inputParts)
@@ -169,7 +169,7 @@ public class Main {
                     process.waitFor();
                 } else {
                     if (outputFile != null) {
-                        System.out.close();
+                        System.close();
                         System.setOut(originalOut);
                     }
                     System.out.println(command + ": command not found");
@@ -177,7 +177,7 @@ public class Main {
             }
 
             if (outputFile != null && System.out != originalOut) {
-                System.out.close();
+                System.close();
                 System.setOut(originalOut);
             }
         }
