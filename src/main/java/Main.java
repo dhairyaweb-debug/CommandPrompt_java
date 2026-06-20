@@ -126,15 +126,19 @@ public class Main {
         List<String> args = new ArrayList<>();
         StringBuilder currentArg = new StringBuilder();
         boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
         boolean hasContent = false;
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
 
-            if (c == '\'') {
+            if (c == '\'' && !inDoubleQuotes) {
                 inSingleQuotes = !inSingleQuotes;
                 hasContent = true;
-            } else if (c == ' ' && !inSingleQuotes) {
+            } else if (c == '"' && !inSingleQuotes) {
+                inDoubleQuotes = !inDoubleQuotes;
+                hasContent = true;
+            } else if (c == ' ' && !inSingleQuotes && !inDoubleQuotes) {
                 if (hasContent || currentArg.length() > 0) {
                     args.add(currentArg.toString());
                     currentArg.setLength(0);
