@@ -29,10 +29,17 @@ public class Main {
             } else if (command.equals("cd")) {
                 String path = input.substring(3).trim();
                 File currentDir = new File(System.getProperty("user.dir"));
-                File targetDir = new File(path);
+                File targetDir;
 
-                if (!targetDir.isAbsolute()) {
-                    targetDir = new File(currentDir, path);
+                if (path.equals("~")) {
+                    targetDir = new File(System.getenv("HOME"));
+                } else if (path.startsWith("~/")) {
+                    targetDir = new File(System.getenv("HOME"), path.substring(2));
+                } else {
+                    targetDir = new File(path);
+                    if (!targetDir.isAbsolute()) {
+                        targetDir = new File(currentDir, path);
+                    }
                 }
 
                 if (targetDir.exists() && targetDir.isDirectory()) {
