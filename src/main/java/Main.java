@@ -26,13 +26,23 @@ public class Main {
                 System.out.println(input.substring(5));
             } else if (command.equals("pwd")) {
                 System.out.println(System.getProperty("user.dir"));
+            } else if (command.equals("cd")) {
+                String path = input.substring(3).trim();
+                File directory = new File(path);
+
+                if (directory.isAbsolute() && directory.exists() && directory.isDirectory()) {
+                    System.setProperty("user.dir", directory.getAbsolutePath());
+                } else {
+                    System.out.println("cd: " + path + ": No such file or directory");
+                }
             } else if (command.equals("type")) {
                 String targetCommand = input.substring(5);
 
                 if (targetCommand.equals("echo")
                         || targetCommand.equals("exit")
                         || targetCommand.equals("type")
-                        || targetCommand.equals("pwd")) {
+                        || targetCommand.equals("pwd")
+                        || targetCommand.equals("cd")) {
                     System.out.println(targetCommand + " is a shell builtin");
                 } else {
                     String pathEnv = System.getenv("PATH");
@@ -66,7 +76,10 @@ public class Main {
                 }
 
                 if (found) {
-                    Process process = new ProcessBuilder(inputParts).inheritIO().start();
+                    Process process = new ProcessBuilder(inputParts)
+                            .directory(new File(System.getProperty("user.dir")))
+                            .inheritIO()
+                            .start();
                     process.waitFor();
                 } else {
                     System.out.println(input + ": command not found");
