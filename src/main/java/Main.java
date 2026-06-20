@@ -9,6 +9,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
         PrintStream originalOut = System.out;
+        PrintStream originalErr = System.err;
 
         while (true) {
             System.out.print("$ ");
@@ -27,13 +28,21 @@ public class Main {
                 continue;
             }
 
-            String outputFile = null;
+            String stdoutFile = null;
+            String stderrFile = null;
             int redirectIndex = -1;
+
             for (int i = 0; i < inputPartsList.size(); i++) {
                 String arg = inputPartsList.get(i);
                 if (arg.equals(">") || arg.equals("1>")) {
                     if (i + 1 < inputPartsList.size()) {
-                        outputFile = inputPartsList.get(i + 1);
+                        stdoutFile = inputPartsList.get(i + 1);
+                        redirectIndex = i;
+                        break;
+                    }
+                } else if (arg.equals("2>")) {
+                    if (i + 1 < inputPartsList.size()) {
+                        stderrFile = inputPartsList.get(i + 1);
                         redirectIndex = i;
                         break;
                     }
@@ -52,8 +61,8 @@ public class Main {
                 continue;
             }
 
-            if (outputFile != null) {
-                File file = new File(outputFile);
+            if (stdoutFile != null) {
+                File file = new File(stdoutFile);
                 if (file.getParentFile() != null && !file.getParentFile().exists()) {
                     file.getParentFile().mkdirs();
                 }
@@ -61,12 +70,25 @@ public class Main {
                 System.setOut(fileOut);
             }
 
+            if (stderrFile != null) {
+                File file = new File(stderrFile);
+                if (file.getParentFile() != null && !file.getParentFile().exists()) {
+                    file.getParentFile().mkdirs();
+                }
+                PrintStream fileErr = new PrintStream(new FileOutputStream(file, false));
+                System.setErr(fileErr);
+            }
+
             String command = inputParts[0];
 
             if (command.equals("exit")) {
-                if (outputFile != null) {
+                if (stdoutFile != null) {
                     System.out.close();
                     System.setOut(originalOut);
+                }
+                if (stderrFile != null) {
+                    System.err.close();
+                    System.setErr(originalErr);
                 }
                 break;
             } else if (command.equals("echo")) {
@@ -100,8 +122,7 @@ public class Main {
                     if (targetDir.exists() && targetDir.isDirectory()) {
                         System.setProperty("user.dir", targetDir.getCanonicalPath());
                     } else {
-                        System.setOut(originalOut);
-                        System.out.println("cd: " + path + ": No such file or directory");
+                        System.err.println("cd: " + path + ": No such file or directory");
                     }
                 }
             } else if (command.equals("type")) {
@@ -147,38 +168,44 @@ public class Main {
                 }
 
                 if (found) {
-                    if (outputFile != null) {
+                    if (stdoutFile != null) {
                         System.out.close();
                         System.setOut(originalOut);
                     }
-                    ProcessBuilder pb = new ProcessBuilder(inputParts)
-                            .directory(new File(System.getProperty("user.dir")))
-                            .redirectError(ProcessBuilder.Redirect.INHERIT);
+                    if (stderrFile != null) {
+                        System.err.close();
+                        System.setErr(originalErr);
+                    }
 
-                    if (outputFile != null) {
-                        File file = new File(outputFile);
-                        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-                            file.getParentFile().mkdirs();
-                        }
-                        pb.redirectOutput(ProcessBuilder.Redirect.to(file));
+                    ProcessBuilder pb = new ProcessBuilder(inputParts)
+                            .directory(new File(System.getProperty("user.dir")));
+
+                    if (stdoutFile != null) {
+                        pb.redirectOutput(ProcessBuilder.Redirect.to(new File(stdoutFile)));
                     } else {
                         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                    }
+
+                    if (stderrFile != null) {
+                        pb.redirectError(ProcessBuilder.Redirect.to(new File(stderrFile)));
+                    } else {
+                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                     }
 
                     Process process = pb.start();
                     process.waitFor();
                 } else {
-                    if (outputFile != null) {
-                        System.out.close();
-                        System.setOut(originalOut);
-                    }
-                    System.out.println(command + ": command not found");
+                    System.err.println(command + ": command not found");
                 }
             }
 
-            if (outputFile != null && System.out != originalOut) {
+            if (stdoutFile != null && System.out != originalOut) {
                 System.out.close();
                 System.setOut(originalOut);
+            }
+            if (stderrFile != null && System.err != originalErr) {
+                System.err.close();
+                System.setErr(originalErr);
             }
         }
 
