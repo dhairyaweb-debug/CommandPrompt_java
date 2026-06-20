@@ -24,12 +24,15 @@ public class Main {
                 break;
             } else if (command.equals("echo")) {
                 System.out.println(input.substring(5));
+            } else if (command.equals("pwd")) {
+                System.out.println(System.getProperty("user.dir"));
             } else if (command.equals("type")) {
                 String targetCommand = input.substring(5);
 
                 if (targetCommand.equals("echo")
                         || targetCommand.equals("exit")
-                        || targetCommand.equals("type")) {
+                        || targetCommand.equals("type")
+                        || targetCommand.equals("pwd")) {
                     System.out.println(targetCommand + " is a shell builtin");
                 } else {
                     String pathEnv = System.getenv("PATH");
