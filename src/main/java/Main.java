@@ -455,11 +455,11 @@ public class Main {
                 errWriter.println("cd: " + arg + ": No such file or directory");
             }
         } else if (command.equals("jobs")) {
-            checkAndPrintJobs(writer, true);
+            checkAndPrintJobs(writer);
         }
     }
 
-    private static void checkAndPrintJobs(PrintStream out, boolean printAll) {
+    private static void checkAndPrintJobs(PrintStream out) {
         int size = backgroundJobs.size();
         List<JobInfo> toRemove = new ArrayList<>();
 
@@ -480,8 +480,8 @@ public class Main {
                         marker,
                         job.command);
                 toRemove.add(job);
-            } else if (printAll) {
-                out.printf("[%d]%c  Running                 %s%n",
+            } else {
+                out.printf("[%d]%c  Running                 %s &%n",
                         job.jobNumber,
                         marker,
                         job.command);
@@ -523,12 +523,6 @@ public class Main {
                 .getAbsoluteFile();
 
         while (true) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException ignored) {
-            }
-            checkAndPrintJobs(System.out, false);
-
             System.out.print("$ ");
             System.out.flush();
 
@@ -560,7 +554,6 @@ public class Main {
             }
 
             RedirectInfo redirectInfo = extractRedirections(parts);
-
             parts = redirectInfo.parts;
 
             if (parts.isEmpty()) {
@@ -691,47 +684,32 @@ public class Main {
                     }
                 }
             } else if (command.equals("jobs")) {
-                checkAndPrintJobs(System.out, true);
+                checkAndPrintJobs(System.out);
             } else {
                 File executable = findExecutable(command);
 
                 if (executable != null) {
                     ProcessBuilder pb = new ProcessBuilder(parts);
-
                     pb.directory(currentDir);
 
                     if (redirectInfo.stdoutFile != null) {
                         if (redirectInfo.stdoutAppend) {
-                            pb.redirectOutput(
-                                    ProcessBuilder.Redirect.appendTo(
-                                            new File(
-                                                    redirectInfo.stdoutFile)));
+                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(redirectInfo.stdoutFile)));
                         } else {
-                            pb.redirectOutput(
-                                    ProcessBuilder.Redirect.to(
-                                            new File(
-                                                    redirectInfo.stdoutFile)));
+                            pb.redirectOutput(ProcessBuilder.Redirect.to(new File(redirectInfo.stdoutFile)));
                         }
                     } else {
-                        pb.redirectOutput(
-                                ProcessBuilder.Redirect.INHERIT);
+                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                     }
 
                     if (redirectInfo.stderrFile != null) {
                         if (redirectInfo.stderrAppend) {
-                            pb.redirectError(
-                                    ProcessBuilder.Redirect.appendTo(
-                                            new File(
-                                                    redirectInfo.stderrFile)));
+                            pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(redirectInfo.stderrFile)));
                         } else {
-                            pb.redirectError(
-                                    ProcessBuilder.Redirect.to(
-                                            new File(
-                                                    redirectInfo.stderrFile)));
+                            pb.redirectError(ProcessBuilder.Redirect.to(new File(redirectInfo.stderrFile)));
                         }
                     } else {
-                        pb.redirectError(
-                                ProcessBuilder.Redirect.INHERIT);
+                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                     }
 
                     Process process = pb.start();
