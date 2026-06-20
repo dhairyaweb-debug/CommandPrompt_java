@@ -29,7 +29,9 @@ public class Main {
             }
 
             String stdoutFile = null;
+            boolean stdoutAppend = false;
             String stderrFile = null;
+            boolean stderrAppend = false;
             int redirectIndex = -1;
 
             for (int i = 0; i < inputPartsList.size(); i++) {
@@ -37,12 +39,28 @@ public class Main {
                 if (arg.equals(">") || arg.equals("1>")) {
                     if (i + 1 < inputPartsList.size()) {
                         stdoutFile = inputPartsList.get(i + 1);
+                        stdoutAppend = false;
+                        redirectIndex = i;
+                        break;
+                    }
+                } else if (arg.equals(">>") || arg.equals("1>>")) {
+                    if (i + 1 < inputPartsList.size()) {
+                        stdoutFile = inputPartsList.get(i + 1);
+                        stdoutAppend = true;
                         redirectIndex = i;
                         break;
                     }
                 } else if (arg.equals("2>")) {
                     if (i + 1 < inputPartsList.size()) {
                         stderrFile = inputPartsList.get(i + 1);
+                        stderrAppend = false;
+                        redirectIndex = i;
+                        break;
+                    }
+                } else if (arg.equals("2>>")) {
+                    if (i + 1 < inputPartsList.size()) {
+                        stderrFile = inputPartsList.get(i + 1);
+                        stderrAppend = true;
                         redirectIndex = i;
                         break;
                     }
@@ -66,7 +84,7 @@ public class Main {
                 if (file.getParentFile() != null && !file.getParentFile().exists()) {
                     file.getParentFile().mkdirs();
                 }
-                PrintStream fileOut = new PrintStream(new FileOutputStream(file, false));
+                PrintStream fileOut = new PrintStream(new FileOutputStream(file, stdoutAppend));
                 System.setOut(fileOut);
             }
 
@@ -75,7 +93,7 @@ public class Main {
                 if (file.getParentFile() != null && !file.getParentFile().exists()) {
                     file.getParentFile().mkdirs();
                 }
-                PrintStream fileErr = new PrintStream(new FileOutputStream(file, false));
+                PrintStream fileErr = new PrintStream(new FileOutputStream(file, stderrAppend));
                 System.setErr(fileErr);
             }
 
@@ -181,13 +199,21 @@ public class Main {
                             .directory(new File(System.getProperty("user.dir")));
 
                     if (stdoutFile != null) {
-                        pb.redirectOutput(ProcessBuilder.Redirect.to(new File(stdoutFile)));
+                        if (stdoutAppend) {
+                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(stdoutFile)));
+                        } else {
+                            pb.redirectOutput(ProcessBuilder.Redirect.to(new File(stdoutFile)));
+                        }
                     } else {
                         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                     }
 
                     if (stderrFile != null) {
-                        pb.redirectError(ProcessBuilder.Redirect.to(new File(stderrFile)));
+                        if (stderrAppend) {
+                            pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(stderrFile)));
+                        } else {
+                            pb.redirectError(ProcessBuilder.Redirect.to(new File(stderrFile)));
+                        }
                     } else {
                         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                     }
