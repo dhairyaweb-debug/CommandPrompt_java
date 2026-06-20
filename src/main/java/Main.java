@@ -455,40 +455,46 @@ public class Main {
                 errWriter.println("cd: " + arg + ": No such file or directory");
             }
         } else if (command.equals("jobs")) {
-            checkAndPrintJobs(writer);
+            printJobsBuiltin(writer);
         }
     }
 
-    private static void checkAndPrintJobs(PrintStream out) {
-        int size = backgroundJobs.size();
+    private static void reapBackgroundJobsBeforePrompt() {
         List<JobInfo> toRemove = new ArrayList<>();
-
-        for (int i = 0; i < size; i++) {
-            JobInfo job = backgroundJobs.get(i);
-            boolean isAlive = job.process.isAlive();
-
-            char marker = ' ';
-            if (i == size - 1) {
-                marker = '+';
-            } else if (i == size - 2) {
-                marker = '-';
-            }
-
-            if (!isAlive) {
-                out.printf("[%d]%c  Done                    %s%n",
-                        job.jobNumber,
-                        marker,
-                        job.command);
+        for (JobInfo job : backgroundJobs) {
+            if (!job.process.isAlive()) {
+                System.out.printf("[%d]   Done                    %s%n", job.jobNumber, job.command);
                 toRemove.add(job);
-            } else {
-                out.printf("[%d]%c  Running                 %s &%n",
-                        job.jobNumber,
-                        marker,
-                        job.command);
             }
         }
-
         backgroundJobs.removeAll(toRemove);
+    }
+
+    private static void printJobsBuiltin(PrintStream out) {
+        List<JobInfo> toRemove = new ArrayList<>();
+        List<JobInfo> livingJobs = new ArrayList<>();
+
+        for (JobInfo job : backgroundJobs) {
+            if (!job.process.isAlive()) {
+                out.printf("[%d]   Done                    %s%n", job.jobNumber, job.command);
+                toRemove.add(job);
+            } else {
+                livingJobs.add(job);
+            }
+        }
+        backgroundJobs.removeAll(toRemove);
+
+        int count = livingJobs.size();
+        for (int i = 0; i < count; i++) {
+            JobInfo job = livingJobs.get(i);
+            char marker = ' ';
+            if (i == count - 1) {
+                marker = '+';
+            } else if (i == count - 2) {
+                marker = '-';
+            }
+            out.printf("[%d]%c  Running                 %s &%n", job.jobNumber, marker, job.command);
+        }
     }
 
     private static int getNextJobNumber() {
@@ -523,7 +529,7 @@ public class Main {
                 .getAbsoluteFile();
 
         while (true) {
-            checkAndPrintJobs(System.out);
+            reapBackgroundJobsBeforePrompt();
 
             System.out.print("$ ");
             System.out.flush();
@@ -686,7 +692,7 @@ public class Main {
                     }
                 }
             } else if (command.equals("jobs")) {
-                checkAndPrintJobs(System.out);
+                printJobsBuiltin(System.out);
             } else {
                 File executable = findExecutable(command);
 
